@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>阿梨看看我～</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #fff1e6, #ffbebe);
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            border-radius: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid #ff69b4;
+            margin: 20px;
+            transition: transform 0.3s;
+        }
+
+        img:hover {
+            transform: rotate(10deg);
+        }
+
+        .text {
+            font-size: 24px;
+            color: #ff69b4;
+            margin: 20px;
+            text-shadow: 2px 2px 0px white;
+        }
+
+        #buttons {
+            margin-top: 40px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #reject {
+            position: relative;
+            background-color: #bebebe;
+            color: #7c7c7c;
+            text-shadow: 1px 1px 0px #3b3b3b;
+            z-index: 1;
+            cursor: not-allowed;
+        }
+
+        #accept {
+            position: relative;
+            background-color: #ffb6c1;
+            color: #ff71ba;
+            text-shadow: 1px 1px 0px #ff1493;
+            z-index: 2;
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(10px); }
+            50% { transform: translateX(-10px); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
+
+        img {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="imageContainer">
+        <img id="image1" src="image/Radiance-Greeting-Shaman-heart-emote-level-4.webp">
+        <img id="image2" src="image/Pleading-Child-pleading-emote-level-4.webp">
+        <img id="image3" src="image/Pleaful-Parent-dont-go-emote-level-4.webp">
+        <img id="image4" src="image/Scolding-Student-scold-emote-level-4.webp">
+        <img id="image5" src="image/Rejecting-Voyager-no-thanks-emote-level-4.webp">
+        <img id="image6" src="image/Pouty-Porter-angry-emote-level-4.webp">
+        <img id="image7" src="image/Tearful-Light-Miner-crying-emote-level-6.webp">
+        <img id="image8" src="image/Forgetful-Storyteller-awww-emote-level-2.webp">
+    </div>
+    <div class="text" id="text">可爱的小阿梨可以做我的恋人嘛？</div>
+    <div class="text" id="text2"></div>
+    <div id="buttons">
+        <button id="accept" onclick="accept()">当然啦</button>
+        <button id="reject" onclick="reject()">才不要</button>
+    </div>
+</div>
+
+<script>
+    window.onload = () => $(`image1`).style.display = `inline-flex`;
+
+    let rejectCount = 0;
+    const rejectMessage = [
+        `再考虑一下嘛～`,
+        `拜托，阿宸真的很可爱诶～`,
+        `　不要的话会后悔的！`,
+        `　　　不许再点这个按钮了！`,
+        `　　　　我要生气气了！`,
+        `　　　　　我不管！`
+    ];
+    const marginTop = [
+        `40px`,
+        `40px`,
+        `60px`,
+        `75px`,
+        `80px`,
+        `95px`,
+        `110px`,
+        `125px`,
+        `140px`,
+    ];
+
+    function reject() {
+        const acceptButton = $(`accept`);
+        const rejectButton = $(`reject`);
+
+        rejectButton.classList.add(`shake`);
+        setTimeout(() => rejectButton.classList.remove(`shake`), 500);
+
+        let index = Math.min(rejectCount, rejectMessage.length - 1);
+        rejectButton.textContent = rejectMessage[index];
+        document.querySelectorAll(`img`).forEach(item => item.style.display = `none`);
+        $(`image${index + 2}`).style.display = `inline-flex`;
+
+        $(`buttons`).style.marginTop = marginTop[Math.min(rejectCount, marginTop.length - 1)];
+
+        acceptButton.style.transform = `scale(${1 + rejectCount * 0.5})`;
+        acceptButton.style.transition = `transform 0.3s`;
+
+        rejectCount = rejectCount + 1;
+    }
+
+    function accept() {
+        $(`accept`).style.display = `none`;
+        $(`reject`).style.display = `none`;
+        $(`text`).textContent = `阿梨真好～阿宸爱你～`;
+        $(`text2`).textContent = `阿梨是我的女朋友啦～`;
+        document.querySelectorAll(`img`).forEach(item => item.style.display = `none`);
+        $(`image8`).style.display = `inline-flex`;
+    }
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+</script>
+</body>
+</html>
