@@ -37,6 +37,7 @@
 			padding: 20px;
 			border-radius: 10px;
 			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			position: relative;
 		}
 
 		.timeline-section {
@@ -92,20 +93,31 @@
 			flex: 1;
 		}
 
-		.export-btn {
+		.share-btn {
 			background-color: #2ecc71;
 		}
 
-		.export-btn:hover {
+		.share-btn:hover {
 			background-color: #27ae60;
 		}
 
-		.import-btn {
-			background-color: #e74c3c;
+		.toast-notification {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			background: #2ecc71;
+			color: white;
+			padding: 15px 25px;
+			border-radius: 5px;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			z-index: 1000;
+			transform: translateX(150%);
+			transition: transform 0.3s ease-in-out;
+			font-weight: 600;
 		}
 
-		.import-btn:hover {
-			background-color: #c0392b;
+		.toast-notification.show {
+			transform: translateX(0);
 		}
 
 		.timeline-container {
@@ -127,7 +139,7 @@
 			position: absolute;
 			top: 0;
 			height: 100%;
-			width: 4.1667%; /* 100% / 24 */
+			width: 4.1667%;
 			border-right: 1px solid #ddd;
 			text-align: center;
 			font-size: 12px;
@@ -232,59 +244,6 @@
 			color: #2c3e50;
 		}
 
-		.modal {
-			display: none;
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-color: rgba(0, 0, 0, 0.5);
-			justify-content: center;
-			align-items: center;
-			z-index: 1000;
-		}
-
-		.modal-content {
-			background-color: white;
-			padding: 20px;
-			border-radius: 10px;
-			width: 90%;
-			max-width: 500px;
-			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-		}
-
-		.modal-buttons {
-			display: flex;
-			gap: 10px;
-			margin-top: 20px;
-		}
-
-		.modal-buttons button {
-			flex: 1;
-		}
-
-		.copy-success {
-			color: #2ecc71;
-			font-weight: bold;
-			margin-top: 10px;
-			display: none;
-		}
-
-		.import-success {
-			color: #2ecc71;
-			font-weight: bold;
-			margin-top: 10px;
-			display: none;
-		}
-
-		.import-error {
-			color: #e74c3c;
-			font-weight: bold;
-			margin-top: 10px;
-			display: none;
-		}
-
 		.timeline-title {
 			margin-top: 20px;
 			margin-bottom: 10px;
@@ -299,6 +258,17 @@
 
 			.input-section, .timeline-section {
 				min-width: 100%;
+			}
+
+			.toast-notification {
+				top: 10px;
+				right: 10px;
+				left: 10px;
+				transform: translateY(-150%);
+			}
+
+			.toast-notification.show {
+				transform: translateY(0);
 			}
 		}
 	</style>
@@ -359,8 +329,7 @@
 		<button id="add-btn">Add to Timeline</button>
 
 		<div class="data-actions">
-			<button id="export-btn" class="export-btn">Export Data</button>
-			<button id="import-btn" class="import-btn">Import Data</button>
+			<button id="share-btn" class="share-btn">Copy Share URL</button>
 		</div>
 
 		<div class="data-list" id="data-list">
@@ -373,7 +342,7 @@
 			<p>2. Click "Add to Timeline" to add periods to the timeline</p>
 			<p>3. All periods are displayed in UTC+0 and selected timezone</p>
 			<p>4. Red areas indicate times when ALL periods overlap</p>
-			<p>5. Use Export/Import to save and load data</p>
+			<p>5. Use "Copy Share URL" to share your timeline with others</p>
 		</div>
 	</div>
 
@@ -402,33 +371,9 @@
 	</div>
 </div>
 
-<!-- Export Modal -->
-<div class="modal" id="export-modal">
-	<div class="modal-content">
-		<h3>Export Data</h3>
-		<p>Copy the following string to save your data:</p>
-		<textarea id="export-data" rows="5" readonly></textarea>
-		<button id="copy-btn">Copy to Clipboard</button>
-		<div class="copy-success" id="copy-success">Copied to clipboard successfully!</div>
-		<div class="modal-buttons">
-			<button id="close-export-btn">Close</button>
-		</div>
-	</div>
-</div>
-
-<!-- Import Modal -->
-<div class="modal" id="import-modal">
-	<div class="modal-content">
-		<h3>Import Data</h3>
-		<p>Paste your data string here:</p>
-		<textarea id="import-data" rows="5" placeholder="Paste your data string here..."></textarea>
-		<div class="import-success" id="import-success">Data imported successfully!</div>
-		<div class="import-error" id="import-error">Import failed: Invalid data format</div>
-		<div class="modal-buttons">
-			<button id="confirm-import-btn">Import</button>
-			<button id="close-import-btn">Cancel</button>
-		</div>
-	</div>
+<!-- Toast Notification -->
+<div class="toast-notification" id="toast-notification">
+	Share URL copied to clipboard!
 </div>
 
 <script>
@@ -441,25 +386,24 @@
 	const startTimeInput = document.getElementById('start-time');
 	const endTimeInput = document.getElementById('end-time');
 	const addButton = document.getElementById('add-btn');
-	const exportButton = document.getElementById('export-btn');
-	const importButton = document.getElementById('import-btn');
+	const shareButton = document.getElementById('share-btn');
+	const toastNotification = document.getElementById('toast-notification');
 	const dataList = document.getElementById('data-list');
 	const utcTimelineAxis = document.getElementById('utc-timeline-axis');
 	const utcTimelineItems = document.getElementById('utc-timeline-items');
 	const selectedTimelineAxis = document.getElementById('selected-timeline-axis');
 	const selectedTimelineItems = document.getElementById('selected-timeline-items');
 	const selectedTimezoneTitle = document.getElementById('selected-timezone-title');
-	const exportModal = document.getElementById('export-modal');
-	const importModal = document.getElementById('import-modal');
-	const exportDataTextarea = document.getElementById('export-data');
-	const importDataTextarea = document.getElementById('import-data');
-	const copyButton = document.getElementById('copy-btn');
-	const copySuccess = document.getElementById('copy-success');
-	const importSuccess = document.getElementById('import-success');
-	const importError = document.getElementById('import-error');
-	const closeExportButton = document.getElementById('close-export-btn');
-	const closeImportButton = document.getElementById('close-import-btn');
-	const confirmImportButton = document.getElementById('confirm-import-btn');
+
+	// Show toast notification
+	function showToast(message) {
+		toastNotification.textContent = message;
+		toastNotification.classList.add('show');
+
+		setTimeout(() => {
+			toastNotification.classList.remove('show');
+		}, 3000);
+	}
 
 	// Initialize the app
 	function init() {
@@ -472,11 +416,102 @@
 		updateSelectedTimezoneTitle();
 		initTimelineAxis(selectedTimelineAxis, getTimezoneDisplayName());
 
-		// Load any saved data from localStorage
-		loadFromLocalStorage();
+		// Check URL parameters first
+		checkUrlParameters();
+
+		// Load saved data from localStorage if no URL parameters found
+		if (timeData.length === 0) {
+			loadFromLocalStorage();
+		}
 
 		// Update timeline with loaded data
 		updateTimeline();
+	}
+
+	// Check for URL parameters and import data if present
+	function checkUrlParameters() {
+		const urlParams = new URLSearchParams(window.location.search);
+		const dataParam = urlParams.get('data');
+
+		if (dataParam) {
+			try {
+				// Simple Base64 decoding
+				const decoded = decodeURIComponent(escape(atob(dataParam)));
+				const importedData = JSON.parse(decoded);
+
+				// Validate data format and decompress
+				if (Array.isArray(importedData) && importedData.every(item =>
+					item.hasOwnProperty('l') &&
+					item.hasOwnProperty('t') &&
+					item.hasOwnProperty('s') &&
+					item.hasOwnProperty('e') &&
+					item.hasOwnProperty('u') &&
+					item.hasOwnProperty('v')
+				)) {
+					// Decompress data
+					timeData = importedData.map(item => ({
+						id: Date.now() + Math.random(), // Generate new IDs
+						label: item.l,
+						timezone: item.t,
+						originalStart: item.s,
+						originalEnd: item.e,
+						utcStart: item.u,
+						utcEnd: item.v
+					}));
+
+					// Update timeline with loaded data
+					updateDataList();
+
+					// Clear URL parameters to avoid re-import on refresh
+					window.history.replaceState({}, document.title, window.location.pathname);
+
+					console.log('Data imported from URL:', timeData.length, 'periods');
+				}
+			} catch (error) {
+				console.error('Error importing data from URL:', error);
+			}
+		}
+	}
+
+	// Generate and copy share URL to clipboard
+	function copyShareUrl() {
+		if (timeData.length === 0) {
+			showToast('No data to share. Please add some availability periods first.');
+			return;
+		}
+
+		// Compress data for URL
+		const compressedData = timeData.map(item => ({
+			l: item.label,
+			t: item.timezone,
+			s: item.originalStart,
+			e: item.originalEnd,
+			u: item.utcStart,
+			v: item.utcEnd
+		}));
+
+		const dataStr = JSON.stringify(compressedData);
+		// Simple Base64 encoding
+		const compressed = btoa(unescape(encodeURIComponent(dataStr)));
+
+		// Create share URL
+		const baseUrl = window.location.href.split('?')[0];
+		const shareUrl = `${baseUrl}?data=${encodeURIComponent(compressed)}`;
+
+		// Copy to clipboard
+		navigator.clipboard.writeText(shareUrl).then(() => {
+			showToast('Share URL copied to clipboard!');
+		}).catch(err => {
+			// Fallback for older browsers
+			const textArea = document.createElement('textarea');
+			textArea.value = shareUrl;
+			document.body.appendChild(textArea);
+			textArea.select();
+			document.execCommand('copy');
+			document.body.removeChild(textArea);
+
+			showToast('Share URL copied to clipboard!');
+		});
 	}
 
 	// Get timezone display name
@@ -570,12 +605,12 @@
 		const label = labelInput.value || `Period ${timeData.length + 1}`;
 
 		if (!startTime || !endTime) {
-			alert('Please enter both start and end times');
+			showToast('Please enter both start and end times');
 			return;
 		}
 
 		if (!label) {
-			alert('Please enter a label');
+			showToast('Please enter a label');
 			return;
 		}
 
@@ -801,102 +836,6 @@
 		}
 	}
 
-	// Export data with compression
-	function exportData() {
-		if (timeData.length === 0) {
-			alert('No data to export');
-			return;
-		}
-
-		// Compress data by removing unnecessary fields and using shorter property names
-		const compressedData = timeData.map(item => ({
-			l: item.label,		   // label
-			t: item.timezone,		// timezone
-			s: item.originalStart,   // originalStart
-			e: item.originalEnd,	 // originalEnd
-			u: item.utcStart,		// utcStart
-			v: item.utcEnd		   // utcEnd (using 'v' to avoid conflict with 'e')
-		}));
-
-		const dataStr = JSON.stringify(compressedData);
-		// Simple Base64 encoding
-		const compressed = btoa(unescape(encodeURIComponent(dataStr)));
-
-		exportDataTextarea.value = compressed;
-		exportModal.style.display = 'flex';
-	}
-
-	// Copy to clipboard
-	function copyToClipboard() {
-		exportDataTextarea.select();
-		document.execCommand('copy');
-		copySuccess.style.display = 'block';
-
-		setTimeout(() => {
-			copySuccess.style.display = 'none';
-		}, 3000);
-	}
-
-	// Import data
-	function importData() {
-		importDataTextarea.value = '';
-		importSuccess.style.display = 'none';
-		importError.style.display = 'none';
-		importModal.style.display = 'flex';
-	}
-
-	// Confirm import
-	function confirmImport() {
-		try {
-			// Simple Base64 decoding
-			const decoded = decodeURIComponent(escape(atob(importDataTextarea.value)));
-			const importedData = JSON.parse(decoded);
-
-			// Validate data format and decompress
-			if (Array.isArray(importedData) && importedData.every(item =>
-				item.hasOwnProperty('l') &&
-				item.hasOwnProperty('t') &&
-				item.hasOwnProperty('s') &&
-				item.hasOwnProperty('e') &&
-				item.hasOwnProperty('u') &&
-				item.hasOwnProperty('v')
-			)) {
-				// Decompress data
-				timeData = importedData.map(item => ({
-					id: Date.now() + Math.random(), // Generate new IDs
-					label: item.l,
-					timezone: item.t,
-					originalStart: item.s,
-					originalEnd: item.e,
-					utcStart: item.u,
-					utcEnd: item.v
-				}));
-
-				updateDataList();
-				updateTimeline();
-				saveToLocalStorage();
-
-				// Show success message
-				importSuccess.style.display = 'block';
-				importError.style.display = 'none';
-
-				// Close modal after 2 seconds
-				setTimeout(() => {
-					importModal.style.display = 'none';
-				}, 2000);
-			} else {
-				// Show error message
-				importSuccess.style.display = 'none';
-				importError.style.display = 'block';
-			}
-		} catch (error) {
-			// Show error message
-			importSuccess.style.display = 'none';
-			importError.style.display = 'block';
-			console.error(error);
-		}
-	}
-
 	// Save to localStorage
 	function saveToLocalStorage() {
 		localStorage.setItem('timelineData', JSON.stringify(timeData));
@@ -917,25 +856,10 @@
 
 	// Event listeners
 	addButton.addEventListener('click', addTimePeriod);
-	exportButton.addEventListener('click', exportData);
-	importButton.addEventListener('click', importData);
-	copyButton.addEventListener('click', copyToClipboard);
-	closeExportButton.addEventListener('click', () => exportModal.style.display = 'none');
-	closeImportButton.addEventListener('click', () => importModal.style.display = 'none');
-	confirmImportButton.addEventListener('click', confirmImport);
+	shareButton.addEventListener('click', copyShareUrl);
 
 	// Update timeline when timezone changes
 	timezoneSelect.addEventListener('change', updateTimeline);
-
-	// Close modals when clicking outside
-	window.addEventListener('click', (event) => {
-		if (event.target === exportModal) {
-			exportModal.style.display = 'none';
-		}
-		if (event.target === importModal) {
-			importModal.style.display = 'none';
-		}
-	});
 
 	// Initialize the app
 	init();
