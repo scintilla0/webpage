@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Global Availability Timeline</title>
+	<style>
+		* {
+			box-sizing: border-box;
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		}
+
+		body {
+			max-width: 1200px;
+			margin: 0 auto;
+			padding: 20px;
+			background-color: #f5f7fa;
+			color: #333;
+		}
+
+		h1 {
+			text-align: center;
+			color: #2c3e50;
+			margin-bottom: 30px;
+		}
+
+		.container {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 20px;
+		}
+
+		.input-section {
+			flex: 1;
+			min-width: 300px;
+			background: white;
+			padding: 20px;
+			border-radius: 10px;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		}
+
+		.timeline-section {
+			flex: 2;
+			min-width: 500px;
+			background: white;
+			padding: 20px;
+			border-radius: 10px;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			display: flex;
+			flex-direction: column;
+		}
+
+		.form-group {
+			margin-bottom: 15px;
+		}
+
+		label {
+			display: block;
+			margin-bottom: 5px;
+			font-weight: 600;
+			color: #2c3e50;
+		}
+
+		input, select, button, textarea {
+			width: 100%;
+			padding: 10px;
+			border: 1px solid #ddd;
+			border-radius: 5px;
+			font-size: 16px;
+		}
+
+		button {
+			background-color: #3498db;
+			color: white;
+			border: none;
+			cursor: pointer;
+			transition: background-color 0.3s;
+			font-weight: 600;
+		}
+
+		button:hover {
+			background-color: #2980b9;
+		}
+
+		.data-actions {
+			display: flex;
+			gap: 10px;
+			margin-top: 20px;
+		}
+
+		.data-actions button {
+			flex: 1;
+		}
+
+		.export-btn {
+			background-color: #2ecc71;
+		}
+
+		.export-btn:hover {
+			background-color: #27ae60;
+		}
+
+		.import-btn {
+			background-color: #e74c3c;
+		}
+
+		.import-btn:hover {
+			background-color: #c0392b;
+		}
+
+		.timeline-container {
+			margin-top: 20px;
+			position: relative;
+			flex: 1;
+			min-height: 150px;
+		}
+
+		.timeline-axis {
+			height: 40px;
+			background: #f8f9fa;
+			border: 1px solid #ddd;
+			position: relative;
+			margin-bottom: 20px;
+		}
+
+		.timeline-hour {
+			position: absolute;
+			top: 0;
+			height: 100%;
+			width: 4.1667%; /* 100% / 24 */
+			border-right: 1px solid #ddd;
+			text-align: center;
+			font-size: 12px;
+			padding-top: 5px;
+		}
+
+		.timeline-hour:first-child {
+			border-left: none;
+		}
+
+		.timeline-hour:nth-child(2n) {
+			background: rgba(0, 0, 0, 0.02);
+		}
+
+		.timeline-item {
+			height: 30px;
+			margin-bottom: 10px;
+			position: relative;
+			border-radius: 5px;
+			overflow: hidden;
+		}
+
+		.timeline-block {
+			position: absolute;
+			height: 100%;
+			background-color: #3498db;
+			border-radius: 5px;
+			opacity: 0.7;
+			transition: opacity 0.3s;
+		}
+
+		.timeline-block:hover {
+			opacity: 1;
+		}
+
+		.timeline-label {
+			position: absolute;
+			left: 5px;
+			top: 5px;
+			color: white;
+			font-size: 12px;
+			font-weight: bold;
+			text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+		}
+
+		.overlap-indicator {
+			position: absolute;
+			height: 10px;
+			background-color: #e74c3c;
+			border-radius: 0 0 5px 5px;
+		}
+
+		.data-list {
+			margin-top: 20px;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+
+		.data-item {
+			background: #f8f9fa;
+			padding: 10px;
+			margin-bottom: 10px;
+			border-radius: 5px;
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+
+		.data-item-info {
+			flex: 1;
+		}
+
+		.data-item-actions {
+			display: flex;
+			gap: 5px;
+		}
+
+		.data-item-actions button {
+			width: auto;
+			padding: 5px 10px;
+			font-size: 12px;
+		}
+
+		.delete-btn {
+			background-color: #e74c3c;
+		}
+
+		.delete-btn:hover {
+			background-color: #c0392b;
+		}
+
+		.instructions {
+			background-color: #f8f9fa;
+			padding: 15px;
+			border-radius: 5px;
+			margin-top: 20px;
+			font-size: 14px;
+		}
+
+		.instructions h3 {
+			margin-top: 0;
+			color: #2c3e50;
+		}
+
+		.modal {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background-color: rgba(0, 0, 0, 0.5);
+			justify-content: center;
+			align-items: center;
+			z-index: 1000;
+		}
+
+		.modal-content {
+			background-color: white;
+			padding: 20px;
+			border-radius: 10px;
+			width: 90%;
+			max-width: 500px;
+			box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		}
+
+		.modal-buttons {
+			display: flex;
+			gap: 10px;
+			margin-top: 20px;
+		}
+
+		.modal-buttons button {
+			flex: 1;
+		}
+
+		.copy-success {
+			color: #2ecc71;
+			font-weight: bold;
+			margin-top: 10px;
+			display: none;
+		}
+
+		.import-success {
+			color: #2ecc71;
+			font-weight: bold;
+			margin-top: 10px;
+			display: none;
+		}
+
+		.import-error {
+			color: #e74c3c;
+			font-weight: bold;
+			margin-top: 10px;
+			display: none;
+		}
+
+		.timeline-title {
+			margin-top: 20px;
+			margin-bottom: 10px;
+			font-weight: 600;
+			color: #2c3e50;
+		}
+
+		@media (max-width: 768px) {
+			.container {
+				flex-direction: column;
+			}
+
+			.input-section, .timeline-section {
+				min-width: 100%;
+			}
+		}
+	</style>
+</head>
+<body>
+<h1>Global Availability Timeline</h1>
+
+<div class="container">
+	<div class="input-section">
+		<h2>Add Availability Period</h2>
+
+		<div class="form-group">
+			<label for="label">Label</label>
+			<input type="text" id="label" placeholder="Player Name">
+		</div>
+
+		<div class="form-group">
+			<label for="timezone">Timezone</label>
+			<select id="timezone">
+				<option value="-12">UTC-12:00</option>
+				<option value="-11">UTC-11:00</option>
+				<option value="-10">UTC-10:00</option>
+				<option value="-9">UTC-09:00</option>
+				<option value="-8">UTC-08:00</option>
+				<option value="-7">UTC-07:00</option>
+				<option value="-6">UTC-06:00</option>
+				<option value="-5">UTC-05:00</option>
+				<option value="-4">UTC-04:00</option>
+				<option value="-3">UTC-03:00</option>
+				<option value="-2">UTC-02:00</option>
+				<option value="-1">UTC-01:00</option>
+				<option value="0" selected>UTC+00:00</option>
+				<option value="1">UTC+01:00</option>
+				<option value="2">UTC+02:00</option>
+				<option value="3">UTC+03:00</option>
+				<option value="4">UTC+04:00</option>
+				<option value="5">UTC+05:00</option>
+				<option value="6">UTC+06:00</option>
+				<option value="7">UTC+07:00</option>
+				<option value="8">UTC+08:00</option>
+				<option value="9">UTC+09:00</option>
+				<option value="10">UTC+10:00</option>
+				<option value="11">UTC+11:00</option>
+				<option value="12">UTC+12:00</option>
+			</select>
+		</div>
+
+		<div class="form-group">
+			<label for="start-time">Start Time</label>
+			<input type="time" id="start-time" value="09:00">
+		</div>
+
+		<div class="form-group">
+			<label for="end-time">End Time</label>
+			<input type="time" id="end-time" value="17:00">
+		</div>
+
+		<button id="add-btn">Add to Timeline</button>
+
+		<div class="data-actions">
+			<button id="export-btn" class="export-btn">Export Data</button>
+			<button id="import-btn" class="import-btn">Import Data</button>
+		</div>
+
+		<div class="data-list" id="data-list">
+			<!-- Data items will be dynamically generated here -->
+		</div>
+
+		<div class="instructions">
+			<h3>Instructions</h3>
+			<p>1. Add availability periods with timezone</p>
+			<p>2. Click "Add to Timeline" to add periods to the timeline</p>
+			<p>3. All periods are displayed in UTC+0 and selected timezone</p>
+			<p>4. Red areas indicate times when ALL periods overlap</p>
+			<p>5. Use Export/Import to save and load data</p>
+		</div>
+	</div>
+
+	<div class="timeline-section">
+		<h2>Timeline</h2>
+
+		<div class="timeline-title">UTC+0 Timezone</div>
+		<div class="timeline-container">
+			<div class="timeline-axis" id="utc-timeline-axis">
+				<!-- UTC timeline hours will be dynamically generated here -->
+			</div>
+			<div id="utc-timeline-items">
+				<!-- UTC timeline items will be dynamically generated here -->
+			</div>
+		</div>
+
+		<div class="timeline-title" id="selected-timezone-title">Selected Timezone (UTC+0)</div>
+		<div class="timeline-container">
+			<div class="timeline-axis" id="selected-timeline-axis">
+				<!-- Selected timezone timeline hours will be dynamically generated here -->
+			</div>
+			<div id="selected-timeline-items">
+				<!-- Selected timezone timeline items will be dynamically generated here -->
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal" id="export-modal">
+	<div class="modal-content">
+		<h3>Export Data</h3>
+		<p>Copy the following string to save your data:</p>
+		<textarea id="export-data" rows="5" readonly></textarea>
+		<button id="copy-btn">Copy to Clipboard</button>
+		<div class="copy-success" id="copy-success">Copied to clipboard successfully!</div>
+		<div class="modal-buttons">
+			<button id="close-export-btn">Close</button>
+		</div>
+	</div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal" id="import-modal">
+	<div class="modal-content">
+		<h3>Import Data</h3>
+		<p>Paste your data string here:</p>
+		<textarea id="import-data" rows="5" placeholder="Paste your data string here..."></textarea>
+		<div class="import-success" id="import-success">Data imported successfully!</div>
+		<div class="import-error" id="import-error">Import failed: Invalid data format</div>
+		<div class="modal-buttons">
+			<button id="confirm-import-btn">Import</button>
+			<button id="close-import-btn">Cancel</button>
+		</div>
+	</div>
+</div>
+
+<script>
+	// Store all time period data
+	let timeData = [];
+
+	// DOM elements
+	const timezoneSelect = document.getElementById('timezone');
+	const labelInput = document.getElementById('label');
+	const startTimeInput = document.getElementById('start-time');
+	const endTimeInput = document.getElementById('end-time');
+	const addButton = document.getElementById('add-btn');
+	const exportButton = document.getElementById('export-btn');
+	const importButton = document.getElementById('import-btn');
+	const dataList = document.getElementById('data-list');
+	const utcTimelineAxis = document.getElementById('utc-timeline-axis');
+	const utcTimelineItems = document.getElementById('utc-timeline-items');
+	const selectedTimelineAxis = document.getElementById('selected-timeline-axis');
+	const selectedTimelineItems = document.getElementById('selected-timeline-items');
+	const selectedTimezoneTitle = document.getElementById('selected-timezone-title');
+	const exportModal = document.getElementById('export-modal');
+	const importModal = document.getElementById('import-modal');
+	const exportDataTextarea = document.getElementById('export-data');
+	const importDataTextarea = document.getElementById('import-data');
+	const copyButton = document.getElementById('copy-btn');
+	const copySuccess = document.getElementById('copy-success');
+	const importSuccess = document.getElementById('import-success');
+	const importError = document.getElementById('import-error');
+	const closeExportButton = document.getElementById('close-export-btn');
+	const closeImportButton = document.getElementById('close-import-btn');
+	const confirmImportButton = document.getElementById('confirm-import-btn');
+
+	// Initialize the app
+	function init() {
+		// Set default timezone to user's timezone
+		const userTimezone = -new Date().getTimezoneOffset() / 60;
+		setTimezoneSelectValue(timezoneSelect, userTimezone);
+
+		// Initialize timeline axes
+		initTimelineAxis(utcTimelineAxis, "UTC+0");
+		updateSelectedTimezoneTitle();
+		initTimelineAxis(selectedTimelineAxis, getTimezoneDisplayName());
+
+		// Load any saved data from localStorage
+		loadFromLocalStorage();
+
+		// Update timeline with loaded data
+		updateTimeline();
+	}
+
+	// Get timezone display name
+	function getTimezoneDisplayName() {
+		const timezone = parseInt(timezoneSelect.value);
+		return `UTC${timezone >= 0 ? '+' : ''}${timezone}`;
+	}
+
+	// Update selected timezone title
+	function updateSelectedTimezoneTitle() {
+		selectedTimezoneTitle.textContent = `Selected Timezone (${getTimezoneDisplayName()})`;
+	}
+
+	// Set the value of a timezone select element
+	function setTimezoneSelectValue(selectElement, value) {
+		const roundedValue = Math.max(-12, Math.min(12, Math.round(value)));
+		for (let i = 0; i < selectElement.options.length; i++) {
+			if (parseInt(selectElement.options[i].value) === roundedValue) {
+				selectElement.selectedIndex = i;
+				break;
+			}
+		}
+	}
+
+	// Initialize timeline axis
+	function initTimelineAxis(axisElement, timezoneName) {
+		axisElement.innerHTML = '';
+		for (let i = 0; i < 24; i++) {
+			const hourDiv = document.createElement('div');
+			hourDiv.className = 'timeline-hour';
+			hourDiv.style.left = `${(i / 24) * 100}%`;
+			hourDiv.textContent = `${i}:00`;
+			axisElement.appendChild(hourDiv);
+		}
+	}
+
+	// Convert time to minutes
+	function timeToMinutes(timeStr) {
+		const [hours, minutes] = timeStr.split(':').map(Number);
+		return hours * 60 + minutes;
+	}
+
+	// Convert minutes to time string
+	function minutesToTime(minutes) {
+		const hours = Math.floor(minutes / 60) % 24;
+		const mins = minutes % 60;
+		return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+	}
+
+	// Convert local time to UTC+0 time
+	function convertToUTC(localTime, timezoneOffset) {
+		// Convert time to minutes
+		let minutes = timeToMinutes(localTime);
+
+		// Apply timezone offset (timezone offset in hours)
+		minutes -= timezoneOffset * 60;
+
+		// Handle day crossing
+		if (minutes < 0) {
+			minutes += 24 * 60;
+		} else if (minutes >= 24 * 60) {
+			minutes -= 24 * 60;
+		}
+
+		return minutesToTime(minutes);
+	}
+
+	// Convert UTC+0 time to local time
+	function convertFromUTC(utcTime, timezoneOffset) {
+		// Convert time to minutes
+		let minutes = timeToMinutes(utcTime);
+
+		// Apply timezone offset (timezone offset in hours)
+		minutes += timezoneOffset * 60;
+
+		// Handle day crossing
+		if (minutes < 0) {
+			minutes += 24 * 60;
+		} else if (minutes >= 24 * 60) {
+			minutes -= 24 * 60;
+		}
+
+		return minutesToTime(minutes);
+	}
+
+	// Add a time period
+	function addTimePeriod() {
+		const timezone = parseInt(timezoneSelect.value);
+		const startTime = startTimeInput.value;
+		const endTime = endTimeInput.value;
+		const label = labelInput.value || `Period ${timeData.length + 1}`;
+
+		if (!startTime || !endTime) {
+			alert('Please enter both start and end times');
+			return;
+		}
+
+		if (!label) {
+			alert('Please enter a label');
+			return;
+		}
+
+		// Convert to UTC+0 time
+		const utcStart = convertToUTC(startTime, timezone);
+		const utcEnd = convertToUTC(endTime, timezone);
+
+		// Create data object
+		const data = {
+			id: Date.now(),
+			timezone,
+			originalStart: startTime,
+			originalEnd: endTime,
+			utcStart,
+			utcEnd,
+			label
+		};
+
+		// Add to data array
+		timeData.push(data);
+
+		// Update UI
+		updateDataList();
+		updateTimeline();
+		saveToLocalStorage();
+
+		// Clear inputs
+		labelInput.value = '';
+	}
+
+	// Update data list
+	function updateDataList() {
+		dataList.innerHTML = '';
+
+		timeData.forEach(data => {
+			const itemDiv = document.createElement('div');
+			itemDiv.className = 'data-item';
+
+			const infoDiv = document.createElement('div');
+			infoDiv.className = 'data-item-info';
+			infoDiv.innerHTML = `
+					<strong>${data.label}</strong><br>
+					Local: ${data.originalStart} - ${data.originalEnd} (UTC${data.timezone >= 0 ? '+' : ''}${data.timezone})<br>
+					UTC: ${data.utcStart} - ${data.utcEnd}
+				`;
+
+			const actionsDiv = document.createElement('div');
+			actionsDiv.className = 'data-item-actions';
+
+			const deleteBtn = document.createElement('button');
+			deleteBtn.className = 'delete-btn';
+			deleteBtn.textContent = 'Delete';
+			deleteBtn.onclick = () => deleteTimePeriod(data.id);
+
+			actionsDiv.appendChild(deleteBtn);
+			itemDiv.appendChild(infoDiv);
+			itemDiv.appendChild(actionsDiv);
+
+			dataList.appendChild(itemDiv);
+		});
+	}
+
+	// Delete a time period
+	function deleteTimePeriod(id) {
+		timeData = timeData.filter(data => data.id !== id);
+		updateDataList();
+		updateTimeline();
+		saveToLocalStorage();
+	}
+
+	// Update timeline
+	function updateTimeline() {
+		// Update UTC timeline
+		updateSingleTimeline(utcTimelineItems, true);
+
+		// Update selected timezone timeline
+		updateSelectedTimezoneTitle();
+		initTimelineAxis(selectedTimelineAxis, getTimezoneDisplayName());
+		updateSingleTimeline(selectedTimelineItems, false);
+	}
+
+	// Update a single timeline
+	function updateSingleTimeline(timelineElement, isUTC) {
+		timelineElement.innerHTML = '';
+
+		// Calculate minute representation for all time periods
+		const periods = timeData.map(data => {
+			let startMinutes, endMinutes;
+
+			if (isUTC) {
+				// Use UTC times
+				startMinutes = timeToMinutes(data.utcStart);
+				endMinutes = timeToMinutes(data.utcEnd);
+			} else {
+				// Convert to selected timezone
+				const selectedTimezone = parseInt(timezoneSelect.value);
+				startMinutes = timeToMinutes(convertFromUTC(data.utcStart, selectedTimezone));
+				endMinutes = timeToMinutes(convertFromUTC(data.utcEnd, selectedTimezone));
+			}
+
+			// Handle day crossing (end time < start time)
+			let normalizedEnd = endMinutes;
+			let spansMidnight = false;
+
+			if (normalizedEnd < startMinutes) {
+				normalizedEnd += 24 * 60;
+				spansMidnight = true;
+			}
+
+			return {
+				id: data.id,
+				label: data.label,
+				start: startMinutes,
+				end: normalizedEnd,
+				duration: normalizedEnd - startMinutes,
+				spansMidnight
+			};
+		});
+
+		// Draw each time period
+		periods.forEach(period => {
+			const itemDiv = document.createElement('div');
+			itemDiv.className = 'timeline-item';
+
+			// Handle periods that span midnight
+			if (period.spansMidnight) {
+				// Create first part (from start to midnight)
+				const firstBlockDiv = document.createElement('div');
+				firstBlockDiv.className = 'timeline-block';
+				firstBlockDiv.style.left = `${(period.start / (24 * 60)) * 100}%`;
+				firstBlockDiv.style.width = `${((24 * 60 - period.start) / (24 * 60)) * 100}%`;
+
+				// Generate color based on ID
+				const hue = (period.id % 12) * 30;
+				firstBlockDiv.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
+
+				const firstLabelSpan = document.createElement('span');
+				firstLabelSpan.className = 'timeline-label';
+				firstLabelSpan.textContent = period.label;
+
+				firstBlockDiv.appendChild(firstLabelSpan);
+				itemDiv.appendChild(firstBlockDiv);
+
+				// Create second part (from midnight to end)
+				const secondBlockDiv = document.createElement('div');
+				secondBlockDiv.className = 'timeline-block';
+				secondBlockDiv.style.left = '0%';
+				secondBlockDiv.style.width = `${((period.end - 24 * 60) / (24 * 60)) * 100}%`;
+				secondBlockDiv.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
+
+				itemDiv.appendChild(secondBlockDiv);
+			} else {
+				// Normal period (doesn't span midnight)
+				const blockDiv = document.createElement('div');
+				blockDiv.className = 'timeline-block';
+				blockDiv.style.left = `${(period.start / (24 * 60)) * 100}%`;
+				blockDiv.style.width = `${(period.duration / (24 * 60)) * 100}%`;
+
+				// Generate color based on ID
+				const hue = (period.id % 12) * 30;
+				blockDiv.style.backgroundColor = `hsl(${hue}, 70%, 50%)`;
+
+				const labelSpan = document.createElement('span');
+				labelSpan.className = 'timeline-label';
+				labelSpan.textContent = period.label;
+
+				blockDiv.appendChild(labelSpan);
+				itemDiv.appendChild(blockDiv);
+			}
+
+			timelineElement.appendChild(itemDiv);
+		});
+
+		// Calculate and display overlap areas (only where ALL periods overlap)
+		showOverlaps(timelineElement, periods);
+	}
+
+	// Show overlapping time periods (only where ALL periods overlap)
+	function showOverlaps(timelineElement, periods) {
+		if (periods.length === 0) return;
+
+		// Create an array representing each minute of the day
+		const dayMinutes = new Array(24 * 60).fill(0);
+
+		// Mark each minute covered by time periods
+		periods.forEach(period => {
+			for (let i = period.start; i < period.end; i++) {
+				const minuteIndex = i % (24 * 60);
+				dayMinutes[minuteIndex]++;
+			}
+		});
+
+		// Find overlapping areas (minutes covered by ALL periods)
+		const totalPeriods = periods.length;
+		let overlapStart = null;
+		for (let i = 0; i < dayMinutes.length; i++) {
+			if (dayMinutes[i] === totalPeriods) {
+				if (overlapStart === null) {
+					overlapStart = i;
+				}
+			} else {
+				if (overlapStart !== null) {
+					// Create overlap indicator
+					const overlapDiv = document.createElement('div');
+					overlapDiv.className = 'overlap-indicator';
+					overlapDiv.style.left = `${(overlapStart / (24 * 60)) * 100}%`;
+					overlapDiv.style.width = `${((i - overlapStart) / (24 * 60)) * 100}%`;
+
+					timelineElement.appendChild(overlapDiv);
+					overlapStart = null;
+				}
+			}
+		}
+
+		// Handle overlaps spanning midnight
+		if (overlapStart !== null) {
+			const overlapDiv = document.createElement('div');
+			overlapDiv.className = 'overlap-indicator';
+			overlapDiv.style.left = `${(overlapStart / (24 * 60)) * 100}%`;
+			overlapDiv.style.width = `${((24 * 60 - overlapStart) / (24 * 60)) * 100}%`;
+
+			timelineElement.appendChild(overlapDiv);
+		}
+	}
+
+	// Export data with compression
+	function exportData() {
+		if (timeData.length === 0) {
+			alert('No data to export');
+			return;
+		}
+
+		// Compress data by removing unnecessary fields and using shorter property names
+		const compressedData = timeData.map(item => ({
+			l: item.label,		   // label
+			t: item.timezone,		// timezone
+			s: item.originalStart,   // originalStart
+			e: item.originalEnd,	 // originalEnd
+			u: item.utcStart,		// utcStart
+			v: item.utcEnd		   // utcEnd (using 'v' to avoid conflict with 'e')
+		}));
+
+		const dataStr = JSON.stringify(compressedData);
+		// Simple Base64 encoding
+		const compressed = btoa(unescape(encodeURIComponent(dataStr)));
+
+		exportDataTextarea.value = compressed;
+		exportModal.style.display = 'flex';
+	}
+
+	// Copy to clipboard
+	function copyToClipboard() {
+		exportDataTextarea.select();
+		document.execCommand('copy');
+		copySuccess.style.display = 'block';
+
+		setTimeout(() => {
+			copySuccess.style.display = 'none';
+		}, 3000);
+	}
+
+	// Import data
+	function importData() {
+		importDataTextarea.value = '';
+		importSuccess.style.display = 'none';
+		importError.style.display = 'none';
+		importModal.style.display = 'flex';
+	}
+
+	// Confirm import
+	function confirmImport() {
+		try {
+			// Simple Base64 decoding
+			const decoded = decodeURIComponent(escape(atob(importDataTextarea.value)));
+			const importedData = JSON.parse(decoded);
+
+			// Validate data format and decompress
+			if (Array.isArray(importedData) && importedData.every(item =>
+				item.hasOwnProperty('l') &&
+				item.hasOwnProperty('t') &&
+				item.hasOwnProperty('s') &&
+				item.hasOwnProperty('e') &&
+				item.hasOwnProperty('u') &&
+				item.hasOwnProperty('v')
+			)) {
+				// Decompress data
+				timeData = importedData.map(item => ({
+					id: Date.now() + Math.random(), // Generate new IDs
+					label: item.l,
+					timezone: item.t,
+					originalStart: item.s,
+					originalEnd: item.e,
+					utcStart: item.u,
+					utcEnd: item.v
+				}));
+
+				updateDataList();
+				updateTimeline();
+				saveToLocalStorage();
+
+				// Show success message
+				importSuccess.style.display = 'block';
+				importError.style.display = 'none';
+
+				// Close modal after 2 seconds
+				setTimeout(() => {
+					importModal.style.display = 'none';
+				}, 2000);
+			} else {
+				// Show error message
+				importSuccess.style.display = 'none';
+				importError.style.display = 'block';
+			}
+		} catch (error) {
+			// Show error message
+			importSuccess.style.display = 'none';
+			importError.style.display = 'block';
+			console.error(error);
+		}
+	}
+
+	// Save to localStorage
+	function saveToLocalStorage() {
+		localStorage.setItem('timelineData', JSON.stringify(timeData));
+	}
+
+	// Load from localStorage
+	function loadFromLocalStorage() {
+		const savedData = localStorage.getItem('timelineData');
+		if (savedData) {
+			try {
+				timeData = JSON.parse(savedData);
+				updateDataList();
+			} catch (error) {
+				console.error('Error loading saved data:', error);
+			}
+		}
+	}
+
+	// Event listeners
+	addButton.addEventListener('click', addTimePeriod);
+	exportButton.addEventListener('click', exportData);
+	importButton.addEventListener('click', importData);
+	copyButton.addEventListener('click', copyToClipboard);
+	closeExportButton.addEventListener('click', () => exportModal.style.display = 'none');
+	closeImportButton.addEventListener('click', () => importModal.style.display = 'none');
+	confirmImportButton.addEventListener('click', confirmImport);
+
+	// Update timeline when timezone changes
+	timezoneSelect.addEventListener('change', updateTimeline);
+
+	// Close modals when clicking outside
+	window.addEventListener('click', (event) => {
+		if (event.target === exportModal) {
+			exportModal.style.display = 'none';
+		}
+		if (event.target === importModal) {
+			importModal.style.display = 'none';
+		}
+	});
+
+	// Initialize the app
+	init();
+</script>
+</body>
+</html>
